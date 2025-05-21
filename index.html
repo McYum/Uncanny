@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jumpscare CSS Gesicht - Centered & Vignette</title>
+  <style>
+    :root {
+      /* Jumpscare Timing Variablen */
+      --jumpscare-peak-zoom-duration: 0.08s;
+      --white-flash-start-delay-from-jumpscare-start: 0.08s;
+      --white-flash-hold-duration: 0.25s;
+      --white-flash-fadeout-duration: 0.5s;
+      --face-reappear-delay-from-jumpscare-start: 0.9s;
+      --face-reappear-duration: 2s;
+    }
+
+    /* ... (Keyframes shake, blink, initialFadeInFace, faceJumpscareImpactAndVanish, faceReappear, whiteFlashImpact bleiben wie in der letzten Version) ... */
+    @keyframes shake { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 10%, 90% { transform: translate(-1px, 1px) rotate(-0.3deg); } 25%, 75% { transform: translate(1px, -1px) rotate(0.3deg); } 50% { transform: translate(-0.5px, 0.5px) rotate(-0.2deg); } }
+    @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.9), 0 0 8px 4px rgba(255, 255, 255, 0.6); } 50% { opacity: 0.4; transform: scale(1.25); box-shadow: 0 0 30px 15px rgba(255, 255, 255, 1), 0 0 12px 6px rgba(255, 255, 255, 0.8); } }
+    @keyframes initialFadeInFace { from { opacity: 0; transform: scale(0.8) rotate(-5deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
+    @keyframes faceJumpscareImpactAndVanish { 0% { transform: scale(1) rotate(0deg); opacity: 1; } calc( ( (var(--jumpscare-peak-zoom-duration) - 0.01s ) / var(--jumpscare-peak-zoom-duration) ) * 100% - 1%) { transform: scale(8) rotate(25deg); opacity: 1; } 99.9% { transform: scale(8) rotate(25deg); opacity: 1; } 100% { transform: scale(8) rotate(25deg); opacity: 0; } }
+    @keyframes faceReappear { from { opacity: 0; transform: scale(1.2) rotate(5deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
+    @keyframes whiteFlashImpact { 0% { opacity: 0; } 1% { opacity: 0; } 2% { opacity: 1; } calc( (var(--white-flash-hold-duration) / (var(--white-flash-hold-duration) + var(--white-flash-fadeout-duration)) ) * 100% ) { opacity: 1; } 100% { opacity: 0; } }
+
+
+    body {
+      background-color: #050605;
+      margin: 0;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex; /* Für Zentrierung des Gesichts und des Prompts */
+      flex-direction: column; /* Prompt oben, Gesicht darunter */
+      justify-content: center; /* Vertikale Zentrierung des Gesichts (wenn Prompt flex-item ist) */
+      align-items: center; /* Horizontale Zentrierung */
+      cursor: pointer;
+      position: relative; /* Für Overlays */
+    }
+
+    .vignette-overlay { /* Für den Vignette-Effekt */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        /* Stärkerer, dunklerer Verlauf für die Vignette */
+        background: radial-gradient(ellipse at center,
+            transparent 40%, /* Größerer transparenter Bereich in der Mitte */
+            rgba(0,0,0,0.6) 70%,
+            rgba(0,0,0,0.9) 100%
+        );
+        pointer-events: none; /* Lässt Klicks durch */
+        z-index: 5; /* Unter dem Gesicht, aber über dem Body-Background */
+    }
+
+
+    .interaction-prompt {
+        /* position: absolute; /* Wird jetzt durch Flexbox positioniert */
+        /* top: 5vh; */
+        /* left: 50%; */
+        /* transform: translateX(-50%); */
+        color: #b0b0b0; /* Etwas heller */
+        font-family: 'Courier New', Courier, monospace;
+        font-size: clamp(20px, 4.5vw, 32px); /* Größer und responsiv */
+        text-align: center;
+        padding: 20px 10px 10px 10px; /* Mehr Abstand nach oben/unten */
+        z-index: 100; /* Über der Vignette */
+        opacity: 1;
+        transition: opacity 0.5s ease-out;
+        width: 100%; /* Nimmt volle Breite für text-align: center */
+        margin-bottom: 20px; /* Abstand zum Gesicht */
+    }
+
+    .creepy-face-container {
+      /* flex: 1; /* Nimmt den verbleibenden Platz ein, hilft bei der Zentrierung mit Prompt */
+      /* Die obige Zeile ist optional, je nachdem, wie du die Zentrierung genau haben willst.
+         Wenn der Prompt Teil des Flex-Flows ist, ist das nicht unbedingt nötig für die Zentrierung des Gesichts selbst. */
+      width: 320px;
+      height: 480px;
+      position: relative; /* Bleibt relative für innere Elemente */
+      filter: contrast(1.35) brightness(0.82) saturate(0.8);
+      opacity: 0;
+      transform: scale(0.8) rotate(-5deg);
+      z-index: 50; /* Über Vignette, unter White Flash */
+    }
+
+    /* ... (Restliche Klassen und Keyframes für Gesicht, Augen, Mund, Jumpscare etc. bleiben wie in der Vorversion) ... */
+    .creepy-face-container.visible { animation: initialFadeInFace 3s ease-out forwards, shake 5s 3s infinite ease-in-out alternate; }
+    .creepy-face-container.jumpscare-active { animation: faceJumpscareImpactAndVanish var(--jumpscare-peak-zoom-duration) cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
+    .creepy-face-container.jumpscare-reappearing { opacity: 0; transform: scale(1) rotate(0deg); animation: faceReappear var(--face-reappear-duration) ease-out forwards, shake 5s calc(var(--face-reappear-duration) + 0.1s) infinite ease-in-out alternate; }
+    .white-flash-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #fff; opacity: 0; pointer-events: none; z-index: 999; }
+    .white-flash-overlay.active { animation: whiteFlashImpact calc(var(--white-flash-hold-duration) + var(--white-flash-fadeout-duration)) ease-out forwards; animation-delay: var(--white-flash-start-delay-from-jumpscare-start); }
+    .face { width: 100%; height: 100%; position: absolute; border-radius: 55% 55% 35% 35% / 65% 65% 38% 38%; background: radial-gradient(ellipse at 50% 20%, rgba(210, 210, 220, 0.3) 0%, transparent 42%), radial-gradient(ellipse at 25% 58%, rgba(160, 160, 170, 0.22) 0%, transparent 38%), radial-gradient(ellipse at 75% 58%, rgba(160, 160, 170, 0.22) 0%, transparent 38%), radial-gradient(ellipse at 50% 96%, rgba(70, 70, 80, 0.1) 0%, transparent 28%), radial-gradient(ellipse at center, rgba(100, 100, 110, 0.7) 12%, rgba(45, 45, 55, 0.6) 38%, rgba(10, 10, 15, 0.45) 70%, rgba(1, 1, 2, 0.25) 90%, transparent 99% ); box-shadow: inset 0 0 50px 28px rgba(0,0,0,0.8), 0 0 100px 25px rgba(30,0,0,0.5); filter: blur(0.2px); }
+    .eye-socket { position: absolute; background: #000; border-radius: 50%; box-shadow: 0 0 40px 28px rgba(0,0,0,1); filter: blur(6.5px); }
+    .left-eye-socket { width: 78px; height: 90px; top: 112px; left: 58px; transform: rotate(-8deg); }
+    .right-eye-socket { width: 85px; height: 95px; top: 103px; right: 48px; transform: rotate(10deg); }
+    .eye-light { width: 7px; height: 7px; background: rgba(255, 255, 255, 1); border-radius: 50%; position: absolute; box-shadow: 0 0 25px 12px rgba(255, 255, 255, 1), 0 0 10px 5px rgba(220, 220, 255, 0.7); filter: blur(0.1px); animation: blink 1.5s infinite alternate ease-in-out; }
+    .left-eye-socket .eye-light { top: 45%; left: 62%; transform: translate(-50%, -50%); }
+    .right-eye-socket .eye-light { top: 55%; left: 38%; transform: translate(-50%, -50%); }
+    .mouth { position: absolute; width: 120px; height: 230px; bottom: 38px; left: 50%; background: #000; border-radius: 55% 55% 20px 20px / 70px 70px 25px 25px; clip-path: polygon(5% 2%, 95% 0%, 85% 100%, 10% 98%); box-shadow: 0px -5px 15px rgba(180, 180, 190, 0.28), -8px 0px 12px -4px rgba(160, 160, 170, 0.2), 8px 0px 12px -4px rgba(160, 160, 170, 0.2), 0px 10px 22px rgba(140, 140, 150, 0.15); filter: blur(2.2px); transform: translateX(-50%) rotate(0.5deg); }
+    .nose-bridge { position: absolute; width: 30px; height: 135px; top: 118px; left: 50%; transform: translateX(-50%) skewY(-1deg); background: linear-gradient(to bottom, rgba(180, 180, 190, 0.15) 0%, rgba(80, 80, 90, 0.1) 40%, rgba(30, 30, 35, 0.05) 80%, transparent 100% ); border-radius: 26px 26px 8px 8px / 48px 48px 15px 15px; filter: blur(5px); z-index: 1; opacity: 0.7; }
+
+
+  </style>
+</head>
+<body>
+
+<div class="interaction-prompt" id="interactionPrompt">Click to awaken...</div>
+<div class="vignette-overlay"></div> <!-- Vignette hier platziert -->
+<div class="white-flash-overlay" id="whiteFlash"></div>
+
+<div class="creepy-face-container" id="faceContainer">
+  <div class="face">
+    <div class="nose-bridge"></div>
+    <div class="eye-socket left-eye-socket">
+      <div class="eye-light"></div>
+    </div>
+    <div class="eye-socket right-eye-socket">
+      <div class="eye-light"></div>
+    </div>
+    <div class="mouth"></div>
+  </div>
+</div>
+
+<audio id="ambient-audio" loop>
+  <source src="cry.mp3" type="audio/mpeg">
+</audio>
+<audio id="jumpscare-sound">
+  <source src="fazzbear.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+    // JavaScript bleibt identisch zur Vorversion
+  const ambientAudio = document.getElementById('ambient-audio');
+  const jumpscareAudio = document.getElementById('jumpscare-sound');
+  const promptEl = document.getElementById('interactionPrompt');
+  const faceContainer = document.getElementById('faceContainer');
+  const whiteFlashOverlay = document.getElementById('whiteFlash');
+
+  let initialInteractionDone = false;
+  let jumpscareTriggered = false;
+
+  const JUMPSCARE_DELAY_AFTER_CLICK = 7000;
+
+  const style = getComputedStyle(document.documentElement);
+  const JUMPSCARE_PEAK_ZOOM_DURATION_MS = parseFloat(style.getPropertyValue('--jumpscare-peak-zoom-duration').replace('s', '')) * 1000;
+  const WHITE_FLASH_START_DELAY_MS = parseFloat(style.getPropertyValue('--white-flash-start-delay-from-jumpscare-start').replace('s', '')) * 1000;
+  const WHITE_FLASH_HOLD_DURATION_MS = parseFloat(style.getPropertyValue('--white-flash-hold-duration').replace('s', '')) * 1000;
+  const WHITE_FLASH_FADEOUT_DURATION_MS = parseFloat(style.getPropertyValue('--white-flash-fadeout-duration').replace('s', '')) * 1000;
+  const FACE_REAPPEAR_DELAY_MS = parseFloat(style.getPropertyValue('--face-reappear-delay-from-jumpscare-start').replace('s', '')) * 1000;
+  const FACE_REAPPEAR_DURATION_MS = parseFloat(style.getPropertyValue('--face-reappear-duration').replace('s', '')) * 1000;
+
+
+  function startExperience() {
+    if (initialInteractionDone) return;
+    initialInteractionDone = true;
+
+    promptEl.style.opacity = '0';
+    setTimeout(() => { promptEl.style.display = 'none'; }, 500);
+
+    faceContainer.classList.add('visible');
+
+    if (ambientAudio.paused) {
+      ambientAudio.volume = 0.01;
+      ambientAudio.play().then(() => {
+        let currentVolume = 0.01;
+        const targetVolume = 0.4;
+        const fadeDuration = 4000;
+        const steps = 50;
+        const intervalTime = fadeDuration / steps;
+        const volumeStep = (targetVolume - currentVolume) / steps;
+        const fadeInInterval = setInterval(() => {
+          currentVolume += volumeStep;
+          if (currentVolume >= targetVolume) {
+            ambientAudio.volume = targetVolume;
+            clearInterval(fadeInInterval);
+          } else {
+            ambientAudio.volume = currentVolume;
+          }
+        }, intervalTime);
+      }).catch(error => console.error("Ambient audio playback failed:", error));
+    }
+    setTimeout(triggerJumpscare, JUMPSCARE_DELAY_AFTER_CLICK);
+  }
+
+  function triggerJumpscare() {
+    if (jumpscareTriggered) return;
+    jumpscareTriggered = true;
+
+    console.log("JUMPSCARE Sequence Start");
+
+    faceContainer.classList.remove('visible');
+    faceContainer.className = 'creepy-face-container jumpscare-active';
+
+    jumpscareAudio.volume = 1.0;
+    jumpscareAudio.currentTime = 0;
+    jumpscareAudio.play().catch(error => console.error("Jumpscare sound failed:", error));
+
+    whiteFlashOverlay.classList.add('active');
+
+    setTimeout(() => {
+      console.log("JUMPSCARE Reappear");
+      faceContainer.className = 'creepy-face-container jumpscare-reappearing';
+    }, FACE_REAPPEAR_DELAY_MS);
+  }
+
+  document.body.addEventListener('click', startExperience, { once: true });
+</script>
+
+</body>
+</html>
